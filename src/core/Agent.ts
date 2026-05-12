@@ -8,6 +8,7 @@ export interface AgentConfig {
   historyMode?: HistoryMode;       // default: 'full'
   maxSteps?: number;               // default: 5
   maxHistoryTurns?: number | null; // default: null (unlimited)
+  maxRetries?: number;             // default: 3 — retries on transient errors (429, 5xx)
   store?: SessionStore;            // optional external session store
 }
 
@@ -19,6 +20,7 @@ export abstract class Agent {
   protected readonly historyMode: HistoryMode;
   protected readonly maxSteps: number;
   protected readonly maxHistoryTurns: number | null;
+  protected readonly maxRetries: number;
   private readonly store?: SessionStore;
   private messages: CoreMessage[] = [];
 
@@ -30,6 +32,7 @@ export abstract class Agent {
     this.historyMode = config.historyMode ?? 'full';
     this.maxSteps = config.maxSteps ?? 5;
     this.maxHistoryTurns = config.maxHistoryTurns ?? null;
+    this.maxRetries = config.maxRetries ?? 3;
     this.store = config.store;
   }
 
@@ -41,19 +44,27 @@ export abstract class Agent {
     await logTurn(this.sessionId, 'user', userMessage);
     this.messages.push({ role: 'user', content: userMessage });
 
-    const result = await generateText({
-      model: this.model,
-      system: this.systemPrompt,
-      messages: this.messages,
-      tools: this.tools,
-      maxSteps: this.maxSteps,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: this.name,
-        metadata: { sessionId: this.sessionId },
-      },
-    });
+    let result: Awaited<ReturnType<typeof generateText>>;
+    try {
+      result = await generateText({
+        model: this.model,
+        system: this.systemPrompt,
+        messages: this.messages,
+        tools: this.tools,
+        maxSteps: this.maxSteps,
+        maxRetries: this.maxRetries,
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: this.name,
+          metadata: { sessionId: this.sessionId },
+        },
+      });
+    } catch (err) {
+      console.error(`[${this.name}][${this.sessionId}] LLM call failed:`, err);
+      throw err;
+    }
 
+    this.warnToolErrors(result);
     this.appendToHistory(result);
     this.trimHistory();
 
@@ -63,6 +74,20 @@ export abstract class Agent {
 
     await logTurn(this.sessionId, 'agent', result.text);
     return result.text;
+  }
+
+  private warnToolErrors(result: Awaited<ReturnType<typeof generateText>>): void {
+    for (const message of result.response.messages) {
+      if (message.role !== 'tool') continue;
+      for (const part of message.content) {
+        if (part.type === 'tool-result' && part.isError) {
+          console.warn(
+            `[${this.name}][${this.sessionId}] Tool error — ${part.toolName}:`,
+            part.result,
+          );
+        }
+      }
+    }
   }
 
   private appendToHistory(result: Awaited<ReturnType<typeof generateText>>): void {
