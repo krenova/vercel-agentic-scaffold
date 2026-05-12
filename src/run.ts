@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { sdk } from './instrumentation.js'; // must be imported before any AI calls
-import { Conversation } from './conversation.js';
+import { createPropertyAgentAssistant } from './agents/PropertyAgentAssistant.js';
 
 const EXCHANGES = [
   "Hi, I'm looking for a 3-bedroom condo in Singapore under $2M.",
@@ -14,17 +14,16 @@ async function main() {
   const sessionId = `session-${Date.now()}`;
   console.log(`=== WhatsApp Property Agent — Session: ${sessionId} ===\n`);
 
-  const convo = new Conversation(sessionId);
+  const agent = createPropertyAgentAssistant(sessionId);
 
   try {
     for (const message of EXCHANGES) {
       console.log(`CLIENT: ${message}`);
-      const reply = await convo.send(message);
+      const reply = await agent.send(message);
       console.log(`AGENT:  ${reply}`);
-      console.log(`--- (${convo.length} messages in history) ---\n`);
+      console.log(`--- (${agent.length} messages in history) ---\n`);
     }
   } finally {
-    // Always flush pending OTel spans to Langfuse, even if an exchange throws
     await sdk.shutdown();
     console.log(`\nSession logged → logs/conversations/${sessionId}.jsonl`);
     console.log(`Traces available → http://192.168.1.3:2999`);
