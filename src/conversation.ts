@@ -1,6 +1,7 @@
 import { generateText, type CoreMessage } from 'ai';
 import { model } from './provider.js';
 import { lookupProperty, checkAvailability } from './tools.js';
+import { logTurn } from './logger/conversationLogger.js';
 
 const SYSTEM_PROMPT = `You are a professional property agent assistant based in Singapore.
 You help the agent manage WhatsApp messages from potential buyers and tenants.
@@ -12,7 +13,10 @@ If you don't have enough information to answer, ask one clarifying question.`;
 export class Conversation {
   private messages: CoreMessage[] = [];
 
+  constructor(private readonly sessionId: string) {}
+
   async send(userMessage: string): Promise<string> {
+    await logTurn(this.sessionId, 'user', userMessage);
     this.messages.push({ role: 'user', content: userMessage });
 
     const result = await generateText({
@@ -21,6 +25,11 @@ export class Conversation {
       messages: this.messages,
       tools: { lookupProperty, checkAvailability },
       maxSteps: 5,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'property-agent',
+        metadata: { sessionId: this.sessionId },
+      },
     });
 
     // Append everything the model produced (tool calls + results + final assistant text).
@@ -28,12 +37,7 @@ export class Conversation {
     // the history so the model won't re-lookup things it already knows next turn.
     this.messages.push(...result.response.messages);
 
-    for (const step of result.steps) {
-      for (const toolCall of step.toolCalls ?? []) {
-        console.log(`  [tool] ${toolCall.toolName}(${JSON.stringify(toolCall.args)})`);
-      }
-    }
-
+    await logTurn(this.sessionId, 'agent', result.text);
     return result.text;
   }
 
