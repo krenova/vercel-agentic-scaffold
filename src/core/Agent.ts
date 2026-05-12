@@ -1,12 +1,14 @@
 import { generateText, type CoreMessage, type CoreTool, type LanguageModel } from 'ai';
 import { logTurn } from '../logger/conversationLogger.js';
+import type { SessionStore } from '../store/SessionStore.js';
 
 export type HistoryMode = 'full' | 'text-only';
 
 export interface AgentConfig {
-  historyMode?: HistoryMode;   // default: 'full'
-  maxSteps?: number;           // default: 5
+  historyMode?: HistoryMode;       // default: 'full'
+  maxSteps?: number;               // default: 5
   maxHistoryTurns?: number | null; // default: null (unlimited)
+  store?: SessionStore;            // optional external session store
 }
 
 export abstract class Agent {
@@ -17,6 +19,7 @@ export abstract class Agent {
   protected readonly historyMode: HistoryMode;
   protected readonly maxSteps: number;
   protected readonly maxHistoryTurns: number | null;
+  private readonly store?: SessionStore;
   private messages: CoreMessage[] = [];
 
   constructor(
@@ -27,9 +30,14 @@ export abstract class Agent {
     this.historyMode = config.historyMode ?? 'full';
     this.maxSteps = config.maxSteps ?? 5;
     this.maxHistoryTurns = config.maxHistoryTurns ?? null;
+    this.store = config.store;
   }
 
   async send(userMessage: string): Promise<string> {
+    if (this.store) {
+      this.messages = await this.store.load(this.sessionId);
+    }
+
     await logTurn(this.sessionId, 'user', userMessage);
     this.messages.push({ role: 'user', content: userMessage });
 
@@ -48,6 +56,10 @@ export abstract class Agent {
 
     this.appendToHistory(result);
     this.trimHistory();
+
+    if (this.store) {
+      await this.store.save(this.sessionId, this.messages);
+    }
 
     await logTurn(this.sessionId, 'agent', result.text);
     return result.text;
@@ -76,8 +88,11 @@ export abstract class Agent {
     this.messages = this.messages.slice(keepFromIndex);
   }
 
-  reset(): void {
+  async reset(): Promise<void> {
     this.messages = [];
+    if (this.store) {
+      await this.store.delete(this.sessionId);
+    }
   }
 
   get length(): number {
