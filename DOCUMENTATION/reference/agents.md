@@ -1,91 +1,190 @@
 # Agents Reference
 
-This document covers the concrete agent implementations in `src/agents/`. For the base class and shared logic, see [core-agent.md](./core-agent.md).
+> **Working document** — updated as agents are added, promoted from scaffold, or removed.
+> For the base class and shared config, see [core-agent.md](./core-agent.md).
 
 ---
 
-## `PropertyAgentAssistant`
+## Framework Overview
 
-**File:** `src/agents/PropertyAgentAssistant.ts`
+The system uses a three-stage pipeline to handle incoming WhatsApp messages:
 
-A WhatsApp assistant for a Singapore property agent. It handles inbound messages from buyers and tenants — answering questions about listings, checking viewing availability, and keeping replies short and conversational, as a real agent would write on WhatsApp.
+```mermaid
+flowchart TD
+    MSG([Incoming WhatsApp message])
+    MSG --> ORC
 
-This is the first concrete agent in the framework. It extends `Agent` and declares only the three things specific to this role. All history management, tracing, and logging are inherited.
+    ORC["OrchestratorAgent\n― Planner ―\nIdentifies which specialists are needed.\nCalls independent ones in parallel,\ndependent ones sequentially."]
 
-### Declared members
+    ORC -->|delegates| SPEC
 
-| Member | Value |
-|---|---|
-| `name` | `'PropertyAgentAssistant'` |
-| `systemPrompt` | Singapore property agent persona; instructs the LLM to be warm and concise, use tools before answering, and ask a clarifying question if unsure |
-| `tools` | `{ lookupProperty, checkAvailability }` — see [tools.md](./tools.md) |
+    subgraph SPEC["Specialist Agents  (data & logic layer)"]
+        PA[PropertyAgentAssistant]
+        SA[SchedulingAgent]
+        CA[ComplianceAgent]
+        MA[MarketAnalysisAgent]
+        RA[ResearchAgent]
+    end
 
----
+    SPEC -->|structured results| ORC
+    ORC -->|"composeReply\n(user question + all results)"| SYN
 
-## `createPropertyAgentAssistant(sessionId, config?)`
+    SYN["SynthesizerAgent\n― Writer ―\nBlends all specialist results into\none natural WhatsApp reply."]
 
-**The recommended way to instantiate this agent.** The factory handles the `model` dependency internally so call sites stay clean.
-
-```ts
-function createPropertyAgentAssistant(
-  sessionId: string,
-  config?: AgentConfig,
-): PropertyAgentAssistant
+    SYN --> REPLY([Final reply to client])
 ```
 
-### Parameters
+**Stage 1 — Orchestrator (Planner):** receives the user's message, decides which specialists to call, and collects their results. Always finishes by calling `composeReply`.
 
-| Name | Type | Required | Description |
+**Stage 2 — Specialists (Data layer):** each agent fetches data or applies logic for its domain. Returns structured, objective output — no client-facing tone.
+
+**Stage 3 — Synthesizer (Writer):** receives the original user question and all specialist results; crafts one coherent, warm WhatsApp-style reply.
+
+---
+
+## Agent Registry
+
+| Agent | File | Status | Tools |
 |---|---|---|---|
-| `sessionId` | `string` | Yes | Unique identifier for the conversation session. Passed through to `Agent` for log files and tracing. Use `session-${Date.now()}` or a user-scoped ID in production. |
-| `config` | `AgentConfig` | No | Optional overrides for `historyMode`, `maxSteps`, `maxHistoryTurns`, and `store`. Omit to accept all defaults. See [core-agent.md → AgentConfig](./core-agent.md#agentconfig). |
+| `OrchestratorAgent` | `agents/OrchestratorAgent.ts` | ✅ Active | delegates to specialists + `composeReply` |
+| `SynthesizerAgent` | `agents/SynthesizerAgent.ts` | ✅ Active | none (pure generation) |
+| `PropertyAgentAssistant` | `agents/PropertyAgentAssistant.ts` | ✅ Active | `lookupProperty`, `checkAvailability` |
+| `ResearchAgent` | `agents/ResearchAgent.ts` | ✅ Active | `braveSearch`, `fetchPage` |
+| `SchedulingAgent` | `agents/SchedulingAgent.ts` | ✅ Active (scaffold) | none — calendar integration pending |
+| `ComplianceAgent` | `agents/ComplianceAgent.ts` | ✅ Active | none — SG rules baked into prompt |
+| `MarketAnalysisAgent` | `agents/MarketAnalysisAgent.ts` | ✅ Active (scaffold) | none — URA/HDB API integration pending |
+| `LeadQualificationAgent` | `agents/LeadQualificationAgent.ts` | 🔜 Other workflows | none — scaffold |
+| `ListingWriterAgent` | `agents/ListingWriterAgent.ts` | 🔜 Other workflows | none — scaffold |
 
-### Returns
+**Active** — wired into the orchestrator's tool routing and reachable from live conversations.
+**Active (scaffold)** — routed by the orchestrator but backed by LLM knowledge only; real integrations (calendar, live data APIs) are planned.
+**Other workflows** — not part of the WhatsApp orchestrator flow; reserved for separate workflows to be designed.
 
-A ready-to-use `PropertyAgentAssistant` instance.
+---
 
-### Usage example
+## Orchestrator routing map
 
-```ts
-import { createPropertyAgentAssistant } from './agents/PropertyAgentAssistant.js';
+```mermaid
+flowchart LR
+    ORC[OrchestratorAgent]
 
-const agent = createPropertyAgentAssistant(`session-${Date.now()}`);
-
-const reply = await agent.send("Tell me about P001");
-console.log(reply); // "Sunrise Condo is a 3-bedroom condo in Bukit Timah, listed at SGD $1,200,000."
-
-console.log(agent.length); // number of messages currently in history
+    ORC -->|"specific listing,\nprice, availability"| PA[PropertyAgentAssistant]
+    ORC -->|"book / reschedule\nviewings"| SA[SchedulingAgent]
+    ORC -->|"ABSD, CPF,\nHDB rules"| CA[ComplianceAgent]
+    ORC -->|"price trends,\nrental yields"| MA[MarketAnalysisAgent]
+    ORC -->|"general web\nresearch"| RA[ResearchAgent]
+    ORC -->|"final step\nalways"| SYN[SynthesizerAgent\nvia composeReply]
 ```
 
-With a session store:
+---
 
-```ts
-import { InMemoryStore } from './store/InMemoryStore.js';
+## Agent Summaries
 
-const store = new InMemoryStore();
-const agent = createPropertyAgentAssistant('session-abc', { store });
-```
+### `OrchestratorAgent`
+**Role:** Planner. Receives every incoming WhatsApp message, decides which specialists to call, collects their results, and passes everything to `composeReply`.
+
+**Key config:** `historyMode: 'text-only'` (keeps only final replies across turns, not tool internals), `maxSteps: 10`, `maxHistoryTurns: 20`.
+
+**`composeReply` tool:** the mandatory final step. Always called after all specialists — calls `SynthesizerAgent.send()` with the original question and a labelled summary of all specialist results.
+
+**Factory:** `createOrchestrator(sessionId, config?)` — instantiates all specialists automatically.
+
+---
+
+### `SynthesizerAgent`
+**Role:** Writer. Receives the client's original question plus structured results from one or more specialists. Crafts a single, coherent WhatsApp-style reply that blends everything naturally.
+
+**Key config:** `historyMode: 'text-only'`, `maxSteps: 1` (no tools — pure text generation). Stateless per call.
+
+**Factory:** `createSynthesizer(sessionId, config?)`
+
+---
+
+### `PropertyAgentAssistant`
+**Role:** Property data fetcher. Looks up listing details and viewing availability using real tools. Returns structured property data — no client-facing tone.
+
+**Tools:** `lookupProperty(id)`, `checkAvailability(id, date)` — currently mock data; replace with CRM/calendar in production.
+
+**Also used standalone** in `src/run.ts` for direct property agent demos.
+
+**Factory:** `createPropertyAgentAssistant(sessionId, config?)`
+
+---
+
+### `ResearchAgent`
+**Role:** Web researcher. Uses Brave Search and page fetching to find and synthesise information from the live web.
+
+**Tools:** `braveSearch(query, count)`, `fetchPage(url)`.
+
+**Key config:** `maxSteps: 6` (capped after prompt optimisation — see `DOCUMENTATION/research_agent_optimisation.md`).
+
+**Also used standalone** in `src/runResearch.ts` and the interactive `src/replResearch.ts` REPL.
+
+**Factory:** `createResearchAgent(sessionId, config?)`
+
+---
+
+### `SchedulingAgent` *(scaffold)*
+**Role:** Viewing appointment manager. Handles booking, rescheduling, and cancellation requests. Returns structured confirmation details.
+
+**Tools:** none yet — responds from LLM reasoning. Calendar API integration planned.
+
+**Factory:** `createSchedulingAgent(sessionId, config?)`
+
+---
+
+### `ComplianceAgent`
+**Role:** Singapore property regulation specialist. Answers questions on ABSD, BSD, CPF usage, HDB eligibility, and loan rules. All rules are baked into the system prompt.
+
+**Tools:** none — rules are static reference data in the prompt. Can be upgraded to a live rules API if regulations change frequently.
+
+**Factory:** `createComplianceAgent(sessionId, config?)`
+
+---
+
+### `MarketAnalysisAgent` *(scaffold)*
+**Role:** Singapore property market analyst. Covers price trends by district, rental yields, investment return estimates, and comparable transactions. Currently draws on LLM training data and flags when figures may be outdated.
+
+**Tools:** none yet — URA REALIS and HDB InfoWEB API integrations planned.
+
+**Factory:** `createMarketAnalysisAgent(sessionId, config?)`
+
+---
+
+### `LeadQualificationAgent` *(other workflows)*
+**Role:** Lead analyst. Extracts structured buyer/tenant profile information from client messages — budget, financing, preferences, timeline — and identifies what is still missing.
+
+**Tools:** none.
+
+**Status:** Not part of the WhatsApp orchestrator flow. Reserved for a dedicated lead qualification workflow to be designed separately.
+
+**Factory:** `createLeadQualificationAgent(sessionId, config?)`
+
+---
+
+### `ListingWriterAgent` *(other workflows)*
+**Role:** Marketing copywriter. Generates PropertyGuru/99.co listing descriptions, WhatsApp property summaries, and post-viewing follow-up messages.
+
+**Tools:** none.
+
+**Status:** Not part of the WhatsApp orchestrator flow. Reserved for a dedicated listing creation workflow to be designed separately.
+
+**Factory:** `createListingWriterAgent(sessionId, config?)`
 
 ---
 
 ## How to add a new agent
 
-Adding a specialist agent (e.g. a `SchedulingAgent` or `ListingAgent`) takes three steps.
-
 ### Step 1 — Create the file
 
-Create `src/agents/MyAgent.ts`. Extend `Agent` and declare the three required members:
-
 ```ts
+// src/agents/MyAgent.ts
 import { Agent, type AgentConfig } from '../core/Agent.js';
 import { model } from '../provider.js';
-import { myTool } from '../tools.js'; // import whatever tools this agent needs
 
 export class MyAgent extends Agent {
   readonly name = 'MyAgent';
-
-  protected readonly systemPrompt = `You are a ... (describe persona and behaviour)`;
-
+  protected readonly systemPrompt = `...objective data-fetching or analysis instructions...`;
   protected readonly tools = { myTool };
 }
 
@@ -94,17 +193,15 @@ export function createMyAgent(sessionId: string, config?: AgentConfig): MyAgent 
 }
 ```
 
-### Step 2 — Add any tools the agent needs
+### Step 2 — Wire into the orchestrator
 
-If this agent needs tools that don't exist yet, add them to `src/tools.ts`. See [tools.md → How to add a new tool](./tools.md#how-to-add-a-new-tool).
+In `OrchestratorAgent.ts`:
+1. Import the factory function
+2. Add to `SpecialistRegistry`
+3. Instantiate in `createOrchestrator()` with a derived session ID
+4. Add a `delegateTo()` entry in `this.tools` with a routing description
+5. Add a one-line description to the orchestrator's system prompt
 
-### Step 3 — Use it
+### Step 3 — Keep the specialist objective
 
-```ts
-import { createMyAgent } from './agents/MyAgent.js';
-
-const agent = createMyAgent(`session-${Date.now()}`);
-const reply = await agent.send("...");
-```
-
-No changes to `Agent.ts` are needed — the base class handles everything else.
+Specialist prompts should return structured data, not client-facing replies. The `SynthesizerAgent` handles all tone, warmth, and WhatsApp formatting.
