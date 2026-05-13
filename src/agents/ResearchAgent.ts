@@ -59,5 +59,5 @@ export function createResearchAgent(
   sessionId: string,
   config?: AgentConfig,
 ): ResearchAgent {
-  return new ResearchAgent(model, sessionId, { maxSteps: 6, ...config });
+  return new ResearchAgent(model, sessionId, { maxSteps: 10, ...config });
 }
