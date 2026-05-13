@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/run.ts",
-    "research": "tsx src/runResearch.ts",
-    "repl": "tsx src/replResearch.ts",
-    "orchestrator": "tsx src/runOrchestrator.ts",
-    "skills": "tsx src/replSkillAgent.ts"
+    "property":     "tsx src/repl/replProperty.ts",
+    "orchestrator": "tsx src/repl/replOrchestrator.ts",
+    "research":     "tsx src/repl/replResearch.ts",
+    "skills":       "tsx src/repl/replSkillAgent.ts",
+    "traveltime":   "tsx src/repl/replTravelTime.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",

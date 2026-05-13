@@ -1,6 +1,8 @@
 # Tools Reference
 
-**File:** `src/tools.ts`
+Tools live in two locations:
+- **`src/tools.ts`** — mock property tools (`lookupProperty`, `checkAvailability`)
+- **`src/tools/`** — individual tool files for live integrations (`braveSearch`, `fetchPage`, `travelTime`)
 
 ---
 
@@ -101,13 +103,58 @@ The LLM calls this when a user asks about scheduling a viewing or asks if a prop
 
 ---
 
+## `getTravelTime`
+
+**File:** `src/tools/travelTime.ts` | **Used by:** `PropertyAgentAssistant`
+
+Get estimated travel time between two Singapore locations by driving and by public transport. Geocodes both location names via the OneMap Search API, then fetches drive and PT routing in parallel.
+
+**Requires:** `ONEMAP_TOKEN` in `.env` — a JWT obtained from the OneMap API. Valid for 3 days; update manually when expired.
+
+### Input
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `from` | `string` | Yes | Origin — building name, MRT station, address, or postal code (e.g. `"Tampines MRT"`, `"307987"`) |
+| `to` | `string` | Yes | Destination — same formats accepted |
+
+### Output — success
+
+```json
+{
+  "from": { "query": "Tampines MRT", "resolved": "TAMPINES MRT STATION" },
+  "to":   { "query": "Orchard Road", "resolved": "ORCHARD RD" },
+  "travelTime": {
+    "byDriving":          { "minutes": 28, "formatted": "28 min" },
+    "byPublicTransport":  { "minutes": 42, "formatted": "42 min" }
+  }
+}
+```
+
+### Output — partial failure
+
+If one routing mode fails (e.g. PT unavailable late at night), the other is still returned:
+
+```json
+"byPublicTransport": { "error": "PT routing returned no itineraries" }
+```
+
+### Notes
+
+- PT duration is the fastest itinerary returned by OneMap at the current time of day — results vary by time of day and day of week.
+- Drive duration is a static road-distance estimate; it does not account for live traffic.
+- If the location name is ambiguous, OneMap returns the best match. Use postal codes for precision.
+
+---
+
 ## How to add a new tool
 
-### Step 1 — Define the tool in `src/tools.ts`
+### Step 1 — Create a file in `src/tools/`
 
 Use the `tool()` helper from the Vercel AI SDK with a Zod schema for parameters:
 
 ```ts
+// src/tools/bookViewing.ts
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -132,16 +179,16 @@ export const bookViewing = tool({
 **Tips:**
 - Write `description` for the LLM, not for developers — it determines when and how the model calls the tool
 - Use `.describe()` on each Zod field to give the LLM parameter-level guidance
-- Keep `execute` async even if it currently returns static data
+- Return `{ error: string }` rather than throwing for recoverable failures — lets the LLM see the error and adapt
 
 ### Step 2 — Add it to an agent's `tools` object
 
 Open the agent file (e.g. `src/agents/PropertyAgentAssistant.ts`) and import and register the new tool:
 
 ```ts
-import { lookupProperty, checkAvailability, bookViewing } from '../tools.js';
+import { bookViewing } from '../tools/bookViewing.js';
 
-protected readonly tools = { lookupProperty, checkAvailability, bookViewing };
+protected readonly tools = { lookupProperty, checkAvailability, getTravelTime, bookViewing };
 ```
 
 The key name (`bookViewing`) is what the LLM sees as the tool name. No other changes are needed — the Agent base class handles execution automatically.

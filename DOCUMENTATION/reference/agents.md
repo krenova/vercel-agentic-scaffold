@@ -48,7 +48,7 @@ flowchart TD
 |---|---|---|---|
 | `OrchestratorAgent` | `agents/OrchestratorAgent.ts` | ✅ Active | delegates to specialists + `composeReply` |
 | `SynthesizerAgent` | `agents/SynthesizerAgent.ts` | ✅ Active | none (pure generation) |
-| `PropertyAgentAssistant` | `agents/PropertyAgentAssistant.ts` | ✅ Active | `lookupProperty`, `checkAvailability` |
+| `PropertyAgentAssistant` | `agents/PropertyAgentAssistant.ts` | ✅ Active | `lookupProperty`, `checkAvailability`, `getTravelTime` |
 | `ResearchAgent` | `agents/ResearchAgent.ts` | ✅ Active | `braveSearch`, `fetchPage` |
 | `SchedulingAgent` | `agents/SchedulingAgent.ts` | ✅ Active (scaffold) | none — calendar integration pending |
 | `ComplianceAgent` | `agents/ComplianceAgent.ts` | ✅ Active | none — SG rules baked into prompt |
@@ -103,7 +103,7 @@ flowchart LR
 ### `PropertyAgentAssistant`
 **Role:** Property data fetcher. Looks up listing details and viewing availability using real tools. Returns structured property data — no client-facing tone.
 
-**Tools:** `lookupProperty(id)`, `checkAvailability(id, date)` — currently mock data; replace with CRM/calendar in production.
+**Tools:** `lookupProperty(id)`, `checkAvailability(id, date)` — currently mock data; replace with CRM/calendar in production. `getTravelTime(from, to)` — live travel time estimates via OneMap API (drive + public transport).
 
 **Also used standalone** in `src/run.ts` for direct property agent demos.
 

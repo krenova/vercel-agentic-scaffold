@@ -1,6 +1,7 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
 import { model } from '../provider.js';
 import { lookupProperty, checkAvailability } from '../tools.js';
+import { getTravelTime } from '../tools/travelTime.js';
 
 export class PropertyAgentAssistant extends Agent {
   readonly name = 'PropertyAgentAssistant';
@@ -10,12 +11,12 @@ Your job is to look up accurate property information using the available tools a
 
 Always use the tools to fetch property details before responding — never answer from memory.
 Return factual data only: property ID, name, price, bedrooms, location, type, availability status,
-and any other fields returned by the tools.
+travel times, and any other fields returned by the tools.
 If a property is not found, state that clearly.
 Do not add conversational framing, recommendations, or client-facing language — your output
 will be processed by another agent before it reaches the client.`;
 
-  protected readonly tools = { lookupProperty, checkAvailability };
+  protected readonly tools = { lookupProperty, checkAvailability, getTravelTime };
 }
 
 export function createPropertyAgentAssistant(

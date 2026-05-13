@@ -53,7 +53,7 @@ You receive messages from clients (buyers, tenants) or the agent themselves.
 Your job is to gather the right information from specialist agents and hand it to composeReply.
 
 Specialists available:
-- askPropertyAssistant  — specific listings, prices, bedrooms, location, features, viewing availability
+- askPropertyAssistant  — specific listings, prices, bedrooms, location, features, viewing availability, travel time between two Singapore locations
 - askSchedulingAgent    — book, reschedule, or cancel viewing appointments; confirm time slots
 - askComplianceAgent    — ABSD, BSD, stamp duty, CPF usage, HDB eligibility, TDSR/LTV loan rules
 - askMarketAnalysis     — price trends, rental yields, investment returns, district comparisons
@@ -71,7 +71,7 @@ Workflow — follow this for every message:
     this.tools = {
       askPropertyAssistant: delegateTo(
         specialists.property,
-        'Answer questions about specific property listings: price, number of bedrooms, location, property type, and features. Also use for checking whether a property is available for a viewing on a given date.',
+        'Answer questions about specific property listings: price, number of bedrooms, location, property type, and features. Also use for checking viewing availability, or estimating travel time / commute time between two Singapore locations.',
       ),
       askSchedulingAgent: delegateTo(
         specialists.scheduling,
