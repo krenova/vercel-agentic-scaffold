@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/run.ts",
-    "research": "tsx src/runResearch.ts"
+    "research": "tsx src/runResearch.ts",
+    "repl": "tsx src/replResearch.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
