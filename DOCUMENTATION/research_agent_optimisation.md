@@ -258,10 +258,6 @@ Guidelines:
   significantly or synthesise from what you already have.
 - Once you have a credible explanation supported by at least one source, stop searching and
   synthesise your response immediately.
-- Do not use fetchPage on paywalled financial sites — they consistently return 403 errors.
-  Avoid: Yahoo Finance articles, Investing.com, TipRanks, Macrotrends, StockInvest, Seeking Alpha.
-  Prefer: company investor relations pages, press release wires (BusinessWire, PR Newswire),
-  open news syndicates (Reuters, Bloomberg public pages, FinancialContent, StockStory).
 - If fetchPage returns a 403 or timeout error, do not attempt another URL for the same information.
   Move on and synthesise from what you already have.
 - If the user explicitly provides a URL, always use fetchPage on it regardless of the domain
