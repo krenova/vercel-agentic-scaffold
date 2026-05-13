@@ -6,7 +6,8 @@
     "dev": "tsx src/run.ts",
     "research": "tsx src/runResearch.ts",
     "repl": "tsx src/replResearch.ts",
-    "orchestrator": "tsx src/runOrchestrator.ts"
+    "orchestrator": "tsx src/runOrchestrator.ts",
+    "skills": "tsx src/replSkillAgent.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
