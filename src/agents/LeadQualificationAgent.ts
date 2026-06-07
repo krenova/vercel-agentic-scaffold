@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 
 export class LeadQualificationAgent extends Agent {
   readonly name = 'LeadQualificationAgent';
@@ -45,6 +46,7 @@ will be processed by another agent before it reaches the client.`;
 export function createLeadQualificationAgent(
   sessionId: string,
   config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
 ): LeadQualificationAgent {
-  return new LeadQualificationAgent(model, sessionId, config);
+  return new LeadQualificationAgent(agentModel, sessionId, config);
 }

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { model } from '../provider.js';
+import { defaultAgentModel } from '../provider.js';
 import { SkillLoader } from '../core/SkillLoader.js';
 import { SkillAgent } from '../core/SkillAgent.js';
 import { lookupProperty, checkAvailability } from '../tools.js';
@@ -9,7 +9,7 @@ import { makeSessionId, startAgentRepl } from './lib.js';
 const sessionId = makeSessionId('skills');
 const skills = await SkillLoader.loadAll();
 
-const agent = new SkillAgent(model, sessionId, {
+const agent = new SkillAgent(defaultAgentModel, sessionId, {
   name: 'SkillAgent',
   basePrompt: 'You are a property assistant for a Singapore agency.',
   skills,

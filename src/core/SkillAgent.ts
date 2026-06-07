@@ -1,5 +1,6 @@
-import { type CoreTool, type LanguageModel } from 'ai';
+import { type CoreTool } from 'ai';
 import { Agent, type AgentConfig } from './Agent.js';
+import type { AgentModel } from './AgentModel.js';
 import type { Skill } from './Skill.js';
 
 export interface SkillAgentOptions {
@@ -24,7 +25,7 @@ export class SkillAgent extends Agent {
   protected readonly systemPrompt: string;
   protected readonly tools: Record<string, CoreTool>;
 
-  constructor(model: LanguageModel, sessionId: string, options: SkillAgentOptions) {
+  constructor(model: AgentModel, sessionId: string, options: SkillAgentOptions) {
     super(model, sessionId, {
       ...options.config,
       skills: options.skills,

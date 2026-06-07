@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 
 export class SchedulingAgent extends Agent {
   readonly name = 'SchedulingAgent';
@@ -27,6 +28,10 @@ will be processed by another agent before it reaches the client.`;
   protected readonly tools = {};
 }
 
-export function createSchedulingAgent(sessionId: string, config?: AgentConfig): SchedulingAgent {
-  return new SchedulingAgent(model, sessionId, config);
+export function createSchedulingAgent(
+  sessionId: string,
+  config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
+): SchedulingAgent {
+  return new SchedulingAgent(agentModel, sessionId, config);
 }

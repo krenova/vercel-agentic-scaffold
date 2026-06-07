@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 
 export class SynthesizerAgent extends Agent {
   readonly name = 'SynthesizerAgent';
@@ -27,8 +28,12 @@ Synthesise everything into ONE reply.`;
   protected readonly tools = {};
 }
 
-export function createSynthesizer(sessionId: string, config?: AgentConfig): SynthesizerAgent {
-  return new SynthesizerAgent(model, sessionId, {
+export function createSynthesizer(
+  sessionId: string,
+  config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
+): SynthesizerAgent {
+  return new SynthesizerAgent(agentModel, sessionId, {
     historyMode: 'text-only',
     maxSteps: 1,
     ...config,

@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 
 export class ListingWriterAgent extends Agent {
   readonly name = 'ListingWriterAgent';
@@ -46,6 +47,7 @@ type, address/district, price, size (sqft), bedrooms/bathrooms, key features, ne
 export function createListingWriterAgent(
   sessionId: string,
   config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
 ): ListingWriterAgent {
-  return new ListingWriterAgent(model, sessionId, config);
+  return new ListingWriterAgent(agentModel, sessionId, config);
 }

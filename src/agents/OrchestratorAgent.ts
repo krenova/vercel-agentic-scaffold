@@ -1,7 +1,8 @@
-import { tool, type CoreTool, type LanguageModel } from 'ai';
+import { tool, type CoreTool } from 'ai';
 import { z } from 'zod';
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 import { createPropertyAgentAssistant } from './PropertyAgentAssistant.js';
 import { createResearchAgent } from './ResearchAgent.js';
 import { createSchedulingAgent } from './SchedulingAgent.js';
@@ -34,12 +35,12 @@ export class OrchestratorAgent extends Agent {
   protected readonly tools: Record<string, CoreTool>;
 
   constructor(
-    model: LanguageModel,
+    agentModel: AgentModel,
     sessionId: string,
     specialists: SpecialistRegistry,
     config?: AgentConfig,
   ) {
-    super(model, sessionId, {
+    super(agentModel, sessionId, {
       historyMode: 'text-only',
       maxSteps: 10,
       maxHistoryTurns: 20,
@@ -117,15 +118,23 @@ Workflow — follow this for every message:
  *                   `${sessionId}-{specialist}` so their logs remain correlated.
  * @param config     Optional overrides applied to the orchestrator (not to specialists).
  */
-export function createOrchestrator(sessionId: string, config?: AgentConfig): OrchestratorAgent {
+export function createOrchestrator(
+  sessionId: string,
+  config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
+): OrchestratorAgent {
+  const specialistConfig: AgentConfig | undefined = config?.store
+    ? { store: config.store }
+    : undefined;
+
   const specialists: SpecialistRegistry = {
-    property:          createPropertyAgentAssistant(`${sessionId}-property`),
-    research:          createResearchAgent(`${sessionId}-research`),
-    scheduling:        createSchedulingAgent(`${sessionId}-scheduling`),
-    compliance:        createComplianceAgent(`${sessionId}-compliance`),
-    marketAnalysis:    createMarketAnalysisAgent(`${sessionId}-market`),
-    synthesizer:       createSynthesizer(`${sessionId}-synthesizer`),
+    property:          createPropertyAgentAssistant(`${sessionId}-property`, specialistConfig, agentModel),
+    research:          createResearchAgent(`${sessionId}-research`, specialistConfig, agentModel),
+    scheduling:        createSchedulingAgent(`${sessionId}-scheduling`, specialistConfig, agentModel),
+    compliance:        createComplianceAgent(`${sessionId}-compliance`, specialistConfig, agentModel),
+    marketAnalysis:    createMarketAnalysisAgent(`${sessionId}-market`, specialistConfig, agentModel),
+    synthesizer:       createSynthesizer(`${sessionId}-synthesizer`, specialistConfig, agentModel),
   };
 
-  return new OrchestratorAgent(model, sessionId, specialists, config);
+  return new OrchestratorAgent(agentModel, sessionId, specialists, config);
 }

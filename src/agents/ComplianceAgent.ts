@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 
 export class ComplianceAgent extends Agent {
   readonly name = 'ComplianceAgent';
@@ -53,6 +54,10 @@ Above $3,000,000: 6%
   protected readonly tools = {};
 }
 
-export function createComplianceAgent(sessionId: string, config?: AgentConfig): ComplianceAgent {
-  return new ComplianceAgent(model, sessionId, config);
+export function createComplianceAgent(
+  sessionId: string,
+  config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
+): ComplianceAgent {
+  return new ComplianceAgent(agentModel, sessionId, config);
 }

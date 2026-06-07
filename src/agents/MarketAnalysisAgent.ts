@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 
 export class MarketAnalysisAgent extends Agent {
   readonly name = 'MarketAnalysisAgent';
@@ -36,6 +37,7 @@ Output style:
 export function createMarketAnalysisAgent(
   sessionId: string,
   config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
 ): MarketAnalysisAgent {
-  return new MarketAnalysisAgent(model, sessionId, config);
+  return new MarketAnalysisAgent(agentModel, sessionId, config);
 }

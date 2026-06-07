@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 import { braveSearch } from '../tools/braveSearch.js';
 import { fetchPage } from '../tools/fetchPage.js';
 
@@ -58,6 +59,7 @@ Guidelines:
 export function createResearchAgent(
   sessionId: string,
   config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
 ): ResearchAgent {
-  return new ResearchAgent(model, sessionId, { maxSteps: 10, ...config });
+  return new ResearchAgent(agentModel, sessionId, { maxSteps: 10, ...config });
 }

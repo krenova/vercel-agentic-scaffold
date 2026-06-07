@@ -1,7 +1,8 @@
-import { generateText, type CoreMessage, type CoreTool, type LanguageModel } from 'ai';
+import { generateText, type CoreMessage, type CoreTool } from 'ai';
 import { logTurn } from '../logger/conversationLogger.js';
 import type { SessionStore } from '../store/SessionStore.js';
 import type { Skill } from './Skill.js';
+import type { AgentModel } from './AgentModel.js';
 import { createSkill as createSkillTool } from '../tools/createSkill.js';
 import { updateSkill as updateSkillTool } from '../tools/updateSkill.js';
 
@@ -32,7 +33,7 @@ export abstract class Agent {
   private messages: CoreMessage[] = [];
 
   constructor(
-    protected readonly model: LanguageModel,
+    protected readonly model: AgentModel,
     protected readonly sessionId: string,
     config: AgentConfig = {},
   ) {

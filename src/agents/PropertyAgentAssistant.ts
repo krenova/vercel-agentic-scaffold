@@ -1,5 +1,6 @@
 import { Agent, type AgentConfig } from '../core/Agent.js';
-import { model } from '../provider.js';
+import type { AgentModel } from '../core/AgentModel.js';
+import { defaultAgentModel } from '../provider.js';
 import { lookupProperty, checkAvailability } from '../tools.js';
 import { getTravelTime } from '../tools/travelTime.js';
 
@@ -22,6 +23,7 @@ will be processed by another agent before it reaches the client.`;
 export function createPropertyAgentAssistant(
   sessionId: string,
   config?: AgentConfig,
+  agentModel: AgentModel = defaultAgentModel,
 ): PropertyAgentAssistant {
-  return new PropertyAgentAssistant(model, sessionId, config);
+  return new PropertyAgentAssistant(agentModel, sessionId, config);
 }
