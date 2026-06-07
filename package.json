@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "david":        "tsx src/cli/assistant.ts",
     "property":     "tsx src/repl/replProperty.ts",
     "orchestrator": "tsx src/repl/replOrchestrator.ts",
     "research":     "tsx src/repl/replResearch.ts",

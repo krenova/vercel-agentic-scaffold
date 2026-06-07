@@ -16,14 +16,19 @@ Sets up the language model client and exports the `model` instance used by all a
 
 The Anthropic-compatible API client, created with `createAnthropic()` from the Vercel AI SDK. Pointed at the Minimax API base URL instead of Anthropic's own endpoint — this is how any Anthropic-compatible third-party provider is wired in without changing anything else in the codebase.
 
+#### `getModel(modelName?)`
+
+Creates a model instance using the configured Anthropic-compatible provider. If no model name is passed, it reads `ANTHROPIC_MODEL` and falls back to `MiniMax-M2.7`.
+
 #### `model`
 
-The specific model instance passed to every Agent constructor. Currently `MiniMax-M2.7`.
+The default model instance passed to existing REPL entry points.
 
 ```ts
-import { model } from './provider.js';
+import { getModel, model } from './provider.js';
 
 const agent = new MyAgent(model, sessionId);
+const alternate = getModel('MiniMax-M2.7');
 ```
 
 ### Environment variables read
@@ -32,16 +37,19 @@ const agent = new MyAgent(model, sessionId);
 |---|---|
 | `ANTHROPIC_BASE_URL` | The provider's API base URL (e.g. `https://api.minimax.io/anthropic/v1`) |
 | `ANTHROPIC_API_KEY` | The provider's API key |
+| `ANTHROPIC_MODEL` | Default model ID, e.g. `MiniMax-M2.7` |
 
-Both are required. If either is missing, the process will throw at startup.
+`ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` are required. `ANTHROPIC_MODEL` is optional; it defaults to `MiniMax-M2.7`.
 
 ### Swapping the model
 
-To change the model across the entire project, update the string in this one file:
+To change the default model across the project, set `ANTHROPIC_MODEL`:
 
-```ts
-export const model = minimax('MiniMax-M2.7'); // ← change this string
+```bash
+ANTHROPIC_MODEL=MiniMax-M2.7
 ```
+
+The David CLI can override this for a single run with `pnpm david --model <model-id>`.
 
 To switch to a different provider entirely, replace `createAnthropic()` with the appropriate Vercel AI SDK provider adapter (e.g. `createOpenAI()`, `createGoogle()`) and update the env vars.
 
