@@ -1,11 +1,10 @@
 import * as nodeRepl from 'node:repl';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { sdk } from '../instrumentation.js';
+import { sdk, telemetryEnabled } from '../instrumentation.js';
 import type { Agent } from '../core/Agent.js';
 
 const EXPORT_DIR = join(process.cwd(), 'logs', 'exports');
-const LANGFUSE_URL = 'http://192.168.1.3:2999';
 
 export function makeSessionId(prefix: string): string {
   return `${prefix}-${Date.now()}`;
@@ -53,11 +52,11 @@ export function startAgentRepl(options: ReplOptions): nodeRepl.REPLServer {
   }
 
   server.defineCommand('quit', {
-    help: 'Flush Langfuse traces and exit cleanly',
+    help: 'Flush telemetry traces and exit cleanly',
     action: async () => {
       await sdk.shutdown();
       console.log(`\nSession logged → logs/conversations/${sessionId}.jsonl`);
-      console.log(`Traces         → ${LANGFUSE_URL}`);
+      console.log(`Telemetry      → ${telemetryEnabled ? 'enabled' : 'disabled'}`);
       process.exit(0);
     },
   });

@@ -45,13 +45,13 @@ The `Agent` class imports only the `SessionStore` interface, never a concrete im
 
 ```typescript
 interface SessionStore {
-  load(sessionId: string): Promise<CoreMessage[]>;   // fetch history for a session
-  save(sessionId: string, messages: CoreMessage[]): Promise<void>;  // persist history
+  load(sessionId: string): Promise<Message[]>;   // fetch history for a session
+  save(sessionId: string, messages: Message[]): Promise<void>;  // persist history
   delete(sessionId: string): Promise<void>;          // wipe history (e.g. on reset)
 }
 ```
 
-`CoreMessage` is the Vercel AI SDK's message type — it covers user messages, assistant replies, tool call requests, and tool call results. Storing the full array (not just the text) is what lets the model reason about what it already looked up.
+`Message` is the project-owned message type. It covers user messages, assistant replies, tool call requests, and tool call results without exposing provider SDK types to stores. Storing the full array (not just the text) is what lets the model reason about what it already looked up.
 
 ---
 
@@ -61,14 +61,14 @@ interface SessionStore {
 classDiagram
     class SessionStore {
         <<interface>>
-        +load(sessionId) Promise~CoreMessage[]~
+        +load(sessionId) Promise~Message[]~
         +save(sessionId, messages) Promise~void~
         +delete(sessionId) Promise~void~
     }
 
     class InMemoryStore {
-        -map Map~string, CoreMessage[]~
-        +load(sessionId) Promise~CoreMessage[]~
+        -map Map~string, Message[]~
+        +load(sessionId) Promise~Message[]~
         +save(sessionId, messages) Promise~void~
         +delete(sessionId) Promise~void~
     }
@@ -76,7 +76,7 @@ classDiagram
     class RedisStore {
         -url string
         -ttl number
-        +load(sessionId) Promise~CoreMessage[]~
+        +load(sessionId) Promise~Message[]~
         +save(sessionId, messages) Promise~void~
         +delete(sessionId) Promise~void~
         +quit() Promise~void~
@@ -84,11 +84,11 @@ classDiagram
 
     class Agent {
         -store? SessionStore
-        -messages CoreMessage[]
+        -messages Message[]
         -sessionId string
         +send(userMessage) Promise~string~
         +reset() Promise~void~
-        +history CoreMessage[]
+        +history Message[]
     }
 
     SessionStore <|.. InMemoryStore : implements
@@ -113,7 +113,7 @@ sequenceDiagram
 
     User->>Agent: send("Is P001 available Saturday?")
     Note over Agent: Push user message onto this.messages
-    Agent->>LLM: generateText(system, messages, tools)
+    Agent->>LLM: model.generate(system, messages, tools)
     LLM-->>Agent: tool call: checkAvailability("P001", "Saturday")
     Agent->>Tools: execute checkAvailability
     Tools-->>Agent: { available: true }
@@ -139,11 +139,11 @@ sequenceDiagram
     User->>Agent: send("Is P001 available Saturday?")
 
     Agent->>Store: load(sessionId)
-    Store-->>Agent: CoreMessage[] (prior conversation)
+    Store-->>Agent: Message[] (prior conversation)
     Note over Agent: Restore this.messages from store
 
     Note over Agent: Push user message onto this.messages
-    Agent->>LLM: generateText(system, messages, tools)
+    Agent->>LLM: model.generate(system, messages, tools)
     LLM-->>Agent: tool call: checkAvailability("P001", "Saturday")
     Agent->>Tools: execute checkAvailability
     Tools-->>Agent: { available: true }
@@ -180,7 +180,7 @@ It might seem wasteful to load history on every call when you could just keep it
 
 ## `InMemoryStore` — How It Works
 
-`InMemoryStore` is a `Map<sessionId, CoreMessage[]>` with one important detail: **both `load` and `save` copy the array with spread.**
+`InMemoryStore` is a `Map<sessionId, Message[]>` with one important detail: **both `load` and `save` copy the array with spread.**
 
 ```
 Store Map
@@ -264,7 +264,7 @@ After `reset()`, the next `send()` call will load an empty array from the store 
 Redis key scheme:  session:{sessionId}
 Example:           session:session-1715000000000
 
-Value:             JSON array of CoreMessage objects
+Value:             JSON array of Message objects
 TTL:               86400 seconds (24 hours) by default — configurable via constructor
 ```
 

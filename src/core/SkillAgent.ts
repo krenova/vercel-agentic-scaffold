@@ -1,13 +1,13 @@
-import { type CoreTool } from 'ai';
 import { Agent, type AgentConfig } from './Agent.js';
 import type { AgentModel } from './AgentModel.js';
 import type { Skill } from './Skill.js';
+import type { ToolSet } from './Tool.js';
 
 export interface SkillAgentOptions {
   name: string;
   basePrompt: string;               // the agent's core persona — skills are appended after this
   skills: Skill[];
-  tools: Record<string, CoreTool>;  // provided by the developer
+  tools: ToolSet;                   // provided by the developer
   allowSkillManagement?: boolean;   // default: false
   config?: Omit<AgentConfig, 'skills' | 'allowSkillManagement'>;
 }
@@ -23,7 +23,7 @@ export interface SkillAgentOptions {
 export class SkillAgent extends Agent {
   readonly name: string;
   protected readonly systemPrompt: string;
-  protected readonly tools: Record<string, CoreTool>;
+  protected readonly tools: ToolSet;
 
   constructor(model: AgentModel, sessionId: string, options: SkillAgentOptions) {
     super(model, sessionId, {

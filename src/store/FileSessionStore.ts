@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { CoreMessage } from 'ai';
+import type { Message } from '../core/Message.js';
 import type { SessionStore } from './SessionStore.js';
 
 export interface FileSessionStoreOptions {
@@ -14,10 +14,10 @@ export class FileSessionStore implements SessionStore {
     this.dir = options.dir ?? join(process.cwd(), 'logs', 'sessions');
   }
 
-  async load(sessionId: string): Promise<CoreMessage[]> {
+  async load(sessionId: string): Promise<Message[]> {
     try {
       const raw = await readFile(this.pathFor(sessionId), 'utf-8');
-      const parsed = JSON.parse(raw) as CoreMessage[];
+      const parsed = JSON.parse(raw) as Message[];
       return Array.isArray(parsed) ? [...parsed] : [];
     } catch (err) {
       if (this.isNotFound(err)) return [];
@@ -25,7 +25,7 @@ export class FileSessionStore implements SessionStore {
     }
   }
 
-  async save(sessionId: string, messages: CoreMessage[]): Promise<void> {
+  async save(sessionId: string, messages: Message[]): Promise<void> {
     await mkdir(this.dir, { recursive: true });
     await writeFile(this.pathFor(sessionId), JSON.stringify(messages, null, 2), 'utf-8');
   }

@@ -2,6 +2,7 @@
 
 > **Working document** — updated as agents are added, promoted from scaffold, or removed.
 > For the base class and shared config, see [core-agent.md](./core-agent.md).
+> For the SDK boundary used by all agents, see [SDK Decoupling Strategy](../sdk-decoupling.md).
 
 ---
 

@@ -1,15 +1,15 @@
-import type { CoreMessage } from 'ai';
+import type { Message } from '../core/Message.js';
 import type { SessionStore } from './SessionStore.js';
 
 export class InMemoryStore implements SessionStore {
-  private readonly map = new Map<string, CoreMessage[]>();
+  private readonly map = new Map<string, Message[]>();
 
-  async load(sessionId: string): Promise<CoreMessage[]> {
+  async load(sessionId: string): Promise<Message[]> {
     const stored = this.map.get(sessionId);
     return stored ? [...stored] : [];
   }
 
-  async save(sessionId: string, messages: CoreMessage[]): Promise<void> {
+  async save(sessionId: string, messages: Message[]): Promise<void> {
     this.map.set(sessionId, [...messages]);
   }
 

@@ -1,5 +1,5 @@
-import { tool } from 'ai';
 import { z } from 'zod';
+import { defineTool } from '../core/Tool.js';
 
 interface BraveResult {
   title: string;
@@ -17,7 +17,7 @@ interface BraveResponse {
   };
 }
 
-export const braveSearch = tool({
+export const braveSearch = defineTool({
   description:
     'Search the web using Brave Search. Returns titles, URLs, and descriptions for the top results. Use this first to discover relevant pages before reading them with fetchPage.',
   parameters: z.object({

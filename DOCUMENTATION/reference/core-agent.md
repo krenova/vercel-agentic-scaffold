@@ -2,6 +2,8 @@
 
 **File:** `src/core/Agent.ts`
 
+For the architecture-level SDK boundary and adapter strategy, see [SDK Decoupling Strategy](../sdk-decoupling.md).
+
 ---
 
 ## What is `Agent`?
@@ -20,7 +22,7 @@ Every concrete agent must implement exactly three members:
 |---|---|---|
 | `name` | `string` | Identifier used in Langfuse trace `functionId` and log labels |
 | `systemPrompt` | `string` | The LLM system message — defines the agent's persona and behaviour |
-| `tools` | `Record<string, CoreTool>` | The tools the LLM may call during a conversation, keyed by name |
+| `tools` | `ToolSet` | The tools the LLM may call during a conversation, keyed by name |
 
 Everything else is inherited.
 
@@ -64,12 +66,12 @@ See [session-store.md](./session-store.md) for the full reference. When a store 
 ## Constructor
 
 ```ts
-constructor(model: LanguageModel, sessionId: string, config?: AgentConfig)
+constructor(model: AgentModel, sessionId: string, config?: AgentConfig)
 ```
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `model` | `LanguageModel` | Yes | The LLM instance to use. Import the shared `model` export from `src/provider.ts`. |
+| `model` | `AgentModel` | Yes | The LLM instance to use. Import the shared `model` export from `src/provider.ts`. |
 | `sessionId` | `string` | Yes | A unique identifier for this conversation session. Used to key the JSONL log file, Langfuse trace metadata, and session store entries. Typically `session-${Date.now()}`. |
 | `config` | `AgentConfig` | No | Behaviour overrides. All fields have defaults — omit entirely to accept all defaults. |
 
@@ -96,7 +98,7 @@ Sends a user message to the LLM and returns the agent's reply.
 1. If a `store` is configured → load this session's history from the store into `this.messages`
 2. Write the user turn to the JSONL log (`logs/conversations/{sessionId}.jsonl`)
 3. Append the user message to `this.messages`
-4. Call `generateText` with the full history, system prompt, and tools
+4. Call `model.generate()` with the full history, system prompt, and tools
 5. Run the tool-call loop (up to `maxSteps` iterations) if the LLM requests tools
 6. Append the LLM response to `this.messages` (tool calls + results + final text, or text only, depending on `historyMode`)
 7. Trim history if `maxHistoryTurns` is set
@@ -133,7 +135,7 @@ Use this for debugging or to display a turn count, as shown in `run.ts`.
 ## `history` (getter)
 
 ```ts
-get history(): CoreMessage[]
+get history(): Message[]
 ```
 
 Returns a **shallow copy** of the current message history array. Mutating the returned array does not affect the agent's internal state.

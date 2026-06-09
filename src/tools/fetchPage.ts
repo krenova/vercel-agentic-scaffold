@@ -1,11 +1,11 @@
-import { tool } from 'ai';
 import { z } from 'zod';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
+import { defineTool } from '../core/Tool.js';
 
 const MAX_CONTENT_CHARS = 8_000;
 
-export const fetchPage = tool({
+export const fetchPage = defineTool({
   description:
     'Fetch the full content of a web page and extract its readable text. Use this after braveSearch to read the actual content of a promising URL. Returns the page title and clean article text with navigation, ads, and scripts removed.',
   parameters: z.object({

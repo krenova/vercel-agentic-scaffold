@@ -22,8 +22,8 @@ The contract all store implementations must fulfil. The `Agent` class depends on
 
 ```ts
 interface SessionStore {
-  load(sessionId: string): Promise<CoreMessage[]>;
-  save(sessionId: string, messages: CoreMessage[]): Promise<void>;
+  load(sessionId: string): Promise<Message[]>;
+  save(sessionId: string, messages: Message[]): Promise<void>;
   delete(sessionId: string): Promise<void>;
 }
 ```
@@ -36,7 +36,7 @@ interface SessionStore {
 |---|---|---|
 | `sessionId` | `string` | The session key — matches the value passed to the Agent constructor. |
 
-**Returns:** `Promise<CoreMessage[]>` — the stored message history, or an empty array `[]` if the session does not exist yet. Never throws for a missing session.
+**Returns:** `Promise<Message[]>` — the stored message history, or an empty array `[]` if the session does not exist yet. Never throws for a missing session.
 
 ---
 
@@ -45,7 +45,7 @@ interface SessionStore {
 | Parameter | Type | Description |
 |---|---|---|
 | `sessionId` | `string` | The session key. |
-| `messages` | `CoreMessage[]` | The complete, current message history to persist. Overwrites any previously stored value for this session. |
+| `messages` | `Message[]` | The complete, current message history to persist. Overwrites any previously stored value for this session. |
 
 **Returns:** `Promise<void>`
 
@@ -69,7 +69,7 @@ Called by `Agent.reset()`.
 
 **File:** `src/store/InMemoryStore.ts`
 
-A `Map<string, CoreMessage[]>`-backed implementation. No dependencies — works out of the box.
+A `Map<string, Message[]>`-backed implementation. No dependencies — works out of the box.
 
 ### Constructor
 
@@ -117,7 +117,7 @@ const reply = await agentB.send('What did I just ask about?'); // knows about P0
 
 **Status: stub — not yet active.** The full `ioredis` implementation is written in comments and ready to enable. See activation steps below.
 
-When active, each session is stored as a JSON-serialised `CoreMessage[]` under the Redis key `session:{sessionId}`, with a configurable TTL.
+When active, each session is stored as a JSON-serialised `Message[]` under the Redis key `session:{sessionId}`, with a configurable TTL.
 
 ### Constructor
 

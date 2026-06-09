@@ -8,7 +8,7 @@ Tools live in two locations:
 
 ## What are tools?
 
-Tools are functions the LLM can call during a conversation when it needs real data to answer a question. The LLM decides which tool to call and with what arguments; the Vercel AI SDK executes it and feeds the result back. This loop continues (up to `maxSteps` iterations) until the LLM produces a final text reply.
+Tools are functions the LLM can call during a conversation when it needs real data to answer a question. The LLM decides which tool to call and with what arguments; the model adapter executes it and feeds the result back. This loop continues (up to `maxSteps` iterations) until the LLM produces a final text reply.
 
 Each tool has three parts:
 - **`description`** — tells the LLM what the tool does and when to use it
@@ -151,14 +151,14 @@ If one routing mode fails (e.g. PT unavailable late at night), the other is stil
 
 ### Step 1 — Create a file in `src/tools/`
 
-Use the `tool()` helper from the Vercel AI SDK with a Zod schema for parameters:
+Use the project-owned `defineTool()` helper with a Zod schema for parameters:
 
 ```ts
 // src/tools/bookViewing.ts
-import { tool } from 'ai';
 import { z } from 'zod';
+import { defineTool } from '../core/Tool.js';
 
-export const bookViewing = tool({
+export const bookViewing = defineTool({
   description: 'Book a property viewing for a client on a specific date and time.',
   parameters: z.object({
     propertyId: z.string().describe('The property ID, e.g. P001'),

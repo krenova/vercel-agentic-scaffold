@@ -1,5 +1,5 @@
-import { tool } from 'ai';
 import { z } from 'zod';
+import { defineTool } from './core/Tool.js';
 
 const PROPERTIES: Record<string, { name: string; price: number; bedrooms: number; location: string; type: string }> = {
   P001: { name: 'Sunrise Condo', price: 1_200_000, bedrooms: 3, location: 'Bukit Timah', type: 'Condo' },
@@ -14,7 +14,7 @@ const UNAVAILABLE_SLOTS: Record<string, string[]> = {
   P003: ['2026-05-15'],
 };
 
-export const lookupProperty = tool({
+export const lookupProperty = defineTool({
   description: 'Look up details for a property by its ID (e.g. P001). Returns name, price, bedrooms, location, and property type.',
   parameters: z.object({
     id: z.string().describe('The property ID, e.g. P001'),
@@ -33,7 +33,7 @@ export const lookupProperty = tool({
   },
 });
 
-export const checkAvailability = tool({
+export const checkAvailability = defineTool({
   description: 'Check if a property is available for viewing on a given date.',
   parameters: z.object({
     id: z.string().describe('The property ID, e.g. P001'),

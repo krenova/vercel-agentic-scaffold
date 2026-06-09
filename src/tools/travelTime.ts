@@ -1,5 +1,5 @@
-import { tool } from 'ai';
 import { z } from 'zod';
+import { defineTool } from '../core/Tool.js';
 
 const ONEMAP_BASE = 'https://www.onemap.gov.sg';
 
@@ -92,7 +92,7 @@ function fmtMins(mins: number): string {
 
 // --- Exported tool ---
 
-export const getTravelTime = tool({
+export const getTravelTime = defineTool({
   description:
     'Get estimated travel time between two Singapore locations by driving and by public transport (bus + MRT). Use when a client or agent asks about commute time, travel time, or how far one place is from another.',
   parameters: z.object({

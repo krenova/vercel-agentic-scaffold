@@ -1,8 +1,8 @@
-import { tool } from 'ai';
 import { z } from 'zod';
+import { defineTool } from '../core/Tool.js';
 import { SkillLoader } from '../core/SkillLoader.js';
 
-export const createSkill = tool({
+export const createSkill = defineTool({
   description: `Write a new skill guide file to the skills/ directory.
 IMPORTANT: Only call this when the user explicitly asks you to create a new skill.
 Never create skills autonomously or without a direct user request.`,

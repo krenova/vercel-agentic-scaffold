@@ -8,6 +8,8 @@ This document covers the three infrastructure files that every agent depends on.
 
 **File:** `src/provider.ts`
 
+For how `provider.ts` returns a local `AgentModel` instead of leaking SDK model types, see [SDK Decoupling Strategy](../sdk-decoupling.md).
+
 Sets up the language model client and exports the `model` instance used by all agents.
 
 ### Exports
@@ -121,11 +123,25 @@ Initialises OpenTelemetry and wires it to Langfuse so that all LLM calls and too
 
 ### How it works
 
-`LangfuseSpanProcessor` hooks into the OTel SDK and intercepts every span produced by the Vercel AI SDK's `experimental_telemetry` option. Each `generateText` call in `Agent.send()` emits spans automatically; no manual instrumentation is needed in agent code.
+When Langfuse is enabled, `LangfuseSpanProcessor` hooks into the OTel SDK and intercepts every span produced by the Vercel AI SDK telemetry option. Each adapter-backed model generation emits spans automatically; no manual instrumentation is needed in agent code.
 
-### Exported value: `sdk`
+Langfuse is disabled automatically unless `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_BASE_URL` are all set. You can also force it off with:
 
-The `NodeSDK` instance. Import and call `sdk.shutdown()` on process exit to flush any buffered spans before the process terminates — otherwise the last trace of a session may be lost.
+```bash
+LANGFUSE_ENABLED=false
+```
+
+When disabled, `instrumentation.ts` exports the same `sdk.shutdown()` API as a no-op so CLIs and REPLs can run without a reachable Langfuse service.
+
+### Exported values
+
+#### `sdk`
+
+The telemetry SDK handle. Import and call `sdk.shutdown()` on process exit to flush any buffered spans before the process terminates. When telemetry is disabled, this is a no-op.
+
+#### `telemetryEnabled`
+
+Boolean indicating whether Langfuse tracing was configured and started.
 
 ```ts
 import { sdk } from './instrumentation.js';

@@ -1,8 +1,9 @@
-import { generateText, type CoreMessage, type CoreTool } from 'ai';
 import { logTurn } from '../logger/conversationLogger.js';
 import type { SessionStore } from '../store/SessionStore.js';
 import type { Skill } from './Skill.js';
-import type { AgentModel } from './AgentModel.js';
+import type { AgentModel, GenerateResult } from './AgentModel.js';
+import type { Message } from './Message.js';
+import type { ToolSet } from './Tool.js';
 import { createSkill as createSkillTool } from '../tools/createSkill.js';
 import { updateSkill as updateSkillTool } from '../tools/updateSkill.js';
 
@@ -21,7 +22,7 @@ export interface AgentConfig {
 export abstract class Agent {
   abstract readonly name: string;
   protected abstract readonly systemPrompt: string;
-  protected abstract readonly tools: Record<string, CoreTool>;
+  protected abstract readonly tools: ToolSet;
 
   protected readonly historyMode: HistoryMode;
   protected readonly maxSteps: number;
@@ -30,7 +31,7 @@ export abstract class Agent {
   private readonly store?: SessionStore;
   private skills: Skill[];
   private readonly allowSkillManagement: boolean;
-  private messages: CoreMessage[] = [];
+  private messages: Message[] = [];
 
   constructor(
     protected readonly model: AgentModel,
@@ -60,7 +61,7 @@ export abstract class Agent {
   }
 
   // Merges skill management tools when allowSkillManagement is enabled.
-  private get effectiveTools(): Record<string, CoreTool> {
+  private get effectiveTools(): ToolSet {
     if (!this.allowSkillManagement) return this.tools;
     return { ...this.tools, createSkill: createSkillTool, updateSkill: updateSkillTool };
   }
@@ -73,16 +74,15 @@ export abstract class Agent {
     await logTurn(this.sessionId, 'user', userMessage);
     this.messages.push({ role: 'user', content: userMessage });
 
-    let result: Awaited<ReturnType<typeof generateText>>;
+    let result: GenerateResult;
     try {
-      result = await generateText({
-        model: this.model,
+      result = await this.model.generate({
         system: this.effectiveSystemPrompt,
         messages: this.messages,
         tools: this.effectiveTools,
         maxSteps: this.maxSteps,
         maxRetries: this.maxRetries,
-        experimental_telemetry: {
+        telemetry: {
           isEnabled: true,
           functionId: this.name,
           metadata: { sessionId: this.sessionId },
@@ -106,14 +106,10 @@ export abstract class Agent {
     return result.text;
   }
 
-  private async reloadSkillsIfManaged(
-    result: Awaited<ReturnType<typeof generateText>>,
-  ): Promise<void> {
+  private async reloadSkillsIfManaged(result: GenerateResult): Promise<void> {
     if (!this.allowSkillManagement) return;
-    const skillToolUsed = result.steps.some(step =>
-      step.toolCalls?.some(
-        tc => tc.toolName === 'createSkill' || tc.toolName === 'updateSkill',
-      ),
+    const skillToolUsed = result.toolCalls.some(
+      toolCall => toolCall.toolName === 'createSkill' || toolCall.toolName === 'updateSkill',
     );
     if (!skillToolUsed) return;
     const { SkillLoader } = await import('./SkillLoader.js');
@@ -121,23 +117,18 @@ export abstract class Agent {
     console.log(`[${this.name}] Skills reloaded — ${this.skills.length} skill(s) now active`);
   }
 
-  private warnToolErrors(result: Awaited<ReturnType<typeof generateText>>): void {
-    for (const message of result.response.messages) {
-      if (message.role !== 'tool') continue;
-      for (const part of message.content) {
-        if (part.type === 'tool-result' && part.isError) {
-          console.warn(
-            `[${this.name}][${this.sessionId}] Tool error — ${part.toolName}:`,
-            part.result,
-          );
-        }
-      }
+  private warnToolErrors(result: GenerateResult): void {
+    for (const toolError of result.toolErrors) {
+      console.warn(
+        `[${this.name}][${this.sessionId}] Tool error — ${toolError.toolName}:`,
+        toolError.result,
+      );
     }
   }
 
-  private appendToHistory(result: Awaited<ReturnType<typeof generateText>>): void {
+  private appendToHistory(result: GenerateResult): void {
     if (this.historyMode === 'full') {
-      this.messages.push(...result.response.messages);
+      this.messages.push(...result.messages);
     } else {
       this.messages.push({ role: 'assistant', content: result.text });
     }
@@ -169,7 +160,7 @@ export abstract class Agent {
     return this.messages.length;
   }
 
-  get history(): CoreMessage[] {
+  get history(): Message[] {
     return [...this.messages];
   }
 }

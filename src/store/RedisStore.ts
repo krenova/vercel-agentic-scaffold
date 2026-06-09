@@ -1,4 +1,4 @@
-import type { CoreMessage } from 'ai';
+import type { Message } from '../core/Message.js';
 import type { SessionStore } from './SessionStore.js';
 
 // ─── Activate Redis support ────────────────────────────────────────────────
@@ -27,13 +27,13 @@ export class RedisStore implements SessionStore {
     // this.client = new Redis(this.url);
   }
 
-  async load(sessionId: string): Promise<CoreMessage[]> {
+  async load(sessionId: string): Promise<Message[]> {
     throw new Error('RedisStore not active — run `pnpm add ioredis` and uncomment src/store/RedisStore.ts');
     // const raw = await this.client.get(`session:${sessionId}`);
-    // return raw ? (JSON.parse(raw) as CoreMessage[]) : [];
+    // return raw ? (JSON.parse(raw) as Message[]) : [];
   }
 
-  async save(sessionId: string, messages: CoreMessage[]): Promise<void> {
+  async save(sessionId: string, messages: Message[]): Promise<void> {
     throw new Error('RedisStore not active — run `pnpm add ioredis` and uncomment src/store/RedisStore.ts');
     // await this.client.set(`session:${sessionId}`, JSON.stringify(messages), 'EX', this.ttl);
   }

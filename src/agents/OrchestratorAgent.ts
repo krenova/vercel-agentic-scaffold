@@ -1,7 +1,7 @@
-import { tool, type CoreTool } from 'ai';
 import { z } from 'zod';
 import { Agent, type AgentConfig } from '../core/Agent.js';
 import type { AgentModel } from '../core/AgentModel.js';
+import { defineTool, type AnyTool, type ToolSet } from '../core/Tool.js';
 import { defaultAgentModel } from '../provider.js';
 import { createPropertyAgentAssistant } from './PropertyAgentAssistant.js';
 import { createResearchAgent } from './ResearchAgent.js';
@@ -19,8 +19,8 @@ interface SpecialistRegistry {
   synthesizer: ReturnType<typeof createSynthesizer>;
 }
 
-function delegateTo(agent: Agent, description: string): CoreTool {
-  return tool({
+function delegateTo(agent: Agent, description: string): AnyTool {
+  return defineTool({
     description,
     parameters: z.object({
       message: z.string().describe('The user message to forward to this specialist'),
@@ -32,7 +32,7 @@ function delegateTo(agent: Agent, description: string): CoreTool {
 export class OrchestratorAgent extends Agent {
   readonly name = 'OrchestratorAgent';
   protected readonly systemPrompt: string;
-  protected readonly tools: Record<string, CoreTool>;
+  protected readonly tools: ToolSet;
 
   constructor(
     agentModel: AgentModel,
@@ -90,7 +90,7 @@ Workflow — follow this for every message:
         specialists.research,
         'Research general topics not covered by the other specialists: company news, economic trends, non-property regulatory matters, or any open-ended research question requiring live web search.',
       ),
-      composeReply: tool({
+      composeReply: defineTool({
         description:
           'ALWAYS call this as your final step once you have gathered all specialist results. Pass the original user question and a clear summary of everything the specialists provided, labelled by specialist name. This tool composes the final WhatsApp reply to send to the user.',
         parameters: z.object({

@@ -1,8 +1,8 @@
-import { tool } from 'ai';
 import { z } from 'zod';
+import { defineTool } from '../core/Tool.js';
 import { SkillLoader } from '../core/SkillLoader.js';
 
-export const updateSkill = tool({
+export const updateSkill = defineTool({
   description: `Rewrite an existing skill guide file with improved or corrected instructions.
 IMPORTANT: Only call this when the user explicitly asks you to update or improve a skill.
 Never update skills autonomously or without a direct user request.`,
